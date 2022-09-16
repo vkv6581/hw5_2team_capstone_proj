@@ -74,7 +74,7 @@
 ## ✏️ Evaluation
 
 - 분석설계
-- SAGA Pattern
+- SAGA Pattern (Pub / Sub)
 - CQRS Pattern
 - Correlation / Compensation(Unique Key)
 - Request / Response (Feign Client / Sync.Async)
@@ -101,7 +101,7 @@
 - GitHub : [https://github.com/seonguk9303/hw5_capstone_proj]
 - GitPod
   - Github 계정 및 Repositoy(public) 준비 ( **for FORK** )
-  - gitpod.io/#/{Github-Repository-URL}
+  - gitpod.io/#/{Github-Repository-URL} or Browser Extension 설치(https://www.gitpod.io/docs/browser-extension)
   - Collaboration & Sharing
     - 팀장 : github.com > repository > Settings > Collaborators > Add People ; 팀원초대
     - 팀장 / 팀원 : gitpod.io > Settings > Integrations > GitHub > Edit Permissions > Public_repo Check ; GitPod - GitHub 권한설정
@@ -124,10 +124,10 @@
 - `Github 계정 1개` 기준으로 `약 50개`까지의 Pod를 각각 `약 24시간`까지 유지하므로 진행시 유의
 - 장기간 자리비움시(점심시간) 작업중인 내용이 유실될 있으니 `저장` 또는 `commit(push)`
 
-## 👍 Good Practice
+## 👍 Good Practice & Reporting Format
 
 - 배달의 민족 Cover : [https://github.com/msa-ez/example-food-delivery]
-- Air BnB Cover : [https://github.com/msa-ez/airbnb_project]
+- Air BnB Cover : [https://intro-kor.msaez.io/example-scenario/accommodation-reservation/]
 
 ## 🪶 Lite Version (for FORK )
 
