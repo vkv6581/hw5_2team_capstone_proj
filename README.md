@@ -15,9 +15,6 @@
     - 회의 ID : xxx xxx xxxx
     - 암호 : xxxx
 
-  - Kakao
-    - URL : 
-
 ## 🕙 Schedule
 
 - 일자별 진행
