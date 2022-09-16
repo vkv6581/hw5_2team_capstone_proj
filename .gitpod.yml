@@ -4,29 +4,29 @@
 
 tasks:
   - name: httpie
-    command: pip install httpie
+    command: pip install httpie && exit
 
   - name: siege
     command: >
       sudo apt-get install siege &&
-      siege -V
+      siege -V && exit
 
   - name: netstat
     command: >
       sudo apt update &&
-      sudo apt install net-tools
+      sudo apt install net-tools && exit
 
   - name: java
     command: >
       sdk install java 17.0.3-ms < /dev/null &&
       sdk default java 17.0.3-ms &&
       java --version &&
-      gp sync-done init-java
+      gp sync-done init-java && exit
 
   - name: kafka-docker
     command: > 
       cd kafka-docker &&
-      docker-compose up -d
+      docker-compose up -d && exit
 
   - name: kafka-zookeeper
     init: gp sync-await init-java
@@ -52,13 +52,13 @@ tasks:
       curl -LO https://dl.k8s.io/release/v1.21.0/bin/linux/amd64/kubectl &&
       sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl &&
       kubectl version --client &&
-      gp sync-done init-kubectl
+      gp sync-done init-kubectl && exit
 
   - name: python
     init: gp sync-await init-kubectl
     command: >
       sudo apt install python-is-python3 &&
-      gp sync-done init-python
+      gp sync-done init-python && exit
 
   - name: awscli
     init: gp sync-await init-python
@@ -66,7 +66,7 @@ tasks:
       curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" &&
       unzip -o awscliv2.zip &&
       sudo ./aws/install &&
-      gp sync-done init-awscli
+      gp sync-done init-awscli && exit
 
   - name: eksctl
     init: gp sync-await init-awscli
@@ -74,7 +74,7 @@ tasks:
       curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp &&
       sudo mv /tmp/eksctl /usr/local/bin &&
       eksctl version &&
-      gp sync-done init-eksctl
+      gp sync-done init-eksctl && exit
 
   - name: boot
     init: gp sync-await init-eksctl
@@ -85,4 +85,4 @@ tasks:
     command: >
       curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 &&
       chmod 700 get_helm.sh &&
-      ./get_helm.sh
+      ./get_helm.sh && exit
