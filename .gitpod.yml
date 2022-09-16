@@ -9,7 +9,7 @@ tasks:
   - name: siege
     command: >
       sudo apt-get install siege &&
-      siege -V && exit
+      siege -V
 
   - name: netstat
     command: >
@@ -75,11 +75,6 @@ tasks:
       sudo mv /tmp/eksctl /usr/local/bin &&
       eksctl version &&
       gp sync-done init-eksctl && exit
-
-  - name: boot
-    init: gp sync-await init-eksctl
-    command: >
-      cat ./config/init
 
   - name: helm
     command: >
