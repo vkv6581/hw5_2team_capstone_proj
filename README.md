@@ -101,7 +101,7 @@
   * gitpod 초기 연동시 필요한 라이브러리들이 없는 상태이며 **.gitpod.yml** 파일에 선언한 명령어들 자동 실행됨
   * 실행 안되는 명령어들이 있으면 직접 설치
 - AWS (_약 15~20분 소요_)
-  - 계정정보(IAM)메일 발송
+  - AWS IAM 계정(MSA5차수).xlsx 참고
   - Region-Code : 메일 내 Region
   - Cluster-Name : Account-Id
   - Image-Repository-Name : Account-Id
