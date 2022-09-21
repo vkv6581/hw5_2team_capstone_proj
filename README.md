@@ -62,17 +62,17 @@
 ## ✏️ Evaluation
 
 - 분석설계
-- SAGA Pattern (Pub / Sub)
-- CQRS Pattern
-- Correlation / Compensation(Unique Key)
-- Request / Response (Feign Client / Sync.Async)
-- Gateway
-- Deploy / Pipeline
-- Circuit Breaker
-- Autoscale(HPA)
-- Self-Healing(Liveness Probe)
-- Zero-Downtime Deploy(Readiness Probe)
-- Config Map / Persistence Volume
+- SAGA Pattern (Pub / Sub)                           : 공통
+- CQRS Pattern                                       : 
+- Correlation / Compensation(Unique Key)             :
+- Request / Response (Feign Client / Sync.Async)     : Order
+- Gateway                                            : 김영준 대리
+- Deploy / Pipeline                                  : 공통
+- Circuit Breaker                                    : Payment
+- Autoscale(HPA)                                     : 공통
+- Self-Healing(Liveness Probe)                       : 공통(deployment.yaml에 작성)
+- Zero-Downtime Deploy(Readiness Probe)              : 공통(deployment.yaml에 작성)
+- Config Map / Persistence Volume                    : 
 - Polyglot
 
   > NOTE
