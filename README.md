@@ -696,3 +696,126 @@ kubectl port-forward deploy/order 8080:8080
 
 ![image](https://user-images.githubusercontent.com/23250734/191697326-c11f5bfb-f28c-4a8e-858d-85a572887cee.png)
 
+--------------------------------------------------
+## Circuit Breaker
+
+TODO
+
+
+--------------------------------------------------
+## Autoscale(HPA)
+
+TODO
+
+
+--------------------------------------------------
+## Self-Healing(Liveness Probe)
+TODO
+
+--------------------------------------------------
+## Zero-Downtime Deploy(Readiness Probe)              : 공통(deployment.yaml에 작성)
+
+```
+yaml을 통한 쿠버네티스 배포 시, 설정을 통해 무중단 배포가 가능하다.
+(readness, liveness설정 필요)
+```
+#### - 일반적인 배포 
+
+아래처럼 deployment.yaml파일 아래에 readinessprobe, livenessProve를 주석한 후 배포하면 서비스가 중단된다.
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: vkv6581/order:v1
+          ports:
+            - containerPort: 8080
+          # readinessProbe:
+          #   httpGet:
+          #     path: '/actuator/health'
+          #     port: 8080
+          #   initialDelaySeconds: 10
+          #   timeoutSeconds: 2
+          #   periodSeconds: 5
+          #   failureThreshold: 10
+          # livenessProbe:
+          #   httpGet:
+          #     path: '/actuator/health'
+          #     port: 8080
+          #   initialDelaySeconds: 120
+          #   timeoutSeconds: 2
+          #   periodSeconds: 5
+          #   failureThreshold: 5
+```
+
+siege를 통해 서비스 중단을 확인
+![image](https://user-images.githubusercontent.com/23250734/191700323-fdb704ce-60d4-4857-a4f3-3239321e2946.png)
+
+
+#### 무중단 배포 
+
+deployment.yaml에 무중단배포 관련 설정 추가.
+
+```diff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: vkv6581/order:v1
+          ports:
+            - containerPort: 8080
++          readinessProbe:
++            httpGet:
++              path: '/actuator/health'
++              port: 8080
++            initialDelaySeconds: 10
++            timeoutSeconds: 2
++            periodSeconds: 5
++            failureThreshold: 10
++          livenessProbe:
++            httpGet:
++              path: '/actuator/health'
++              port: 8080
++            initialDelaySeconds: 120
++            timeoutSeconds: 2
++            periodSeconds: 5
++            failureThreshold: 5
+```
+
+변경 후 배포.
+
+![image](https://user-images.githubusercontent.com/23250734/191700716-a44cea05-cb6f-4a99-a7a7-1f0c5b1c6306.png)
+
+siege를 통해 지속적인 호출을 하였지만, 중단되지 않음.
+
+![image](https://user-images.githubusercontent.com/23250734/191700800-2a46f200-f7fe-4433-b449-af35720c9ab6.png)
+
