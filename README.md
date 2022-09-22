@@ -408,7 +408,50 @@ application.yml에 설정한 kafka설정에 따라 json형식으로 이벤트 �
 
 --------------------------------------------------
 ## Req / Resp (feign client)
-feign client를 통한 동기 이벤트 구현 (트랜잭션)
+이벤트스토밍 중 주문-결제 부분
+![image](https://user-images.githubusercontent.com/23250734/191682661-7f6b9ff0-2e95-4edc-a80c-e6921893a8b4.png)
+
+```
+요구사항 중 주문-결제 트랜잭션 처리를 위해 Pub/Sub 방식이 아닌 Req/Res방식으로 이벤트 처리.
+주문 시 결제가 한번에 진행되어야 하고, 결제에 문제가 생겼을 경우 주문 이벤트는 발행되지 않음.
+```
+
+주문 이벤트 발행 부분 (Order.java)
+```diff
+    @PostPersist
+    public void onPostPersist() {
+        teamcapstone.external.Payinfo payinfo = new teamcapstone.external.Payinfo();
+        payinfo.setOrderId(id);
+        payinfo.setPrice((double)price);
+        payinfo.setStatus(orderStatus);
+        
++        //Order생성 시 Payment도 생성 (req/res). pay정보 생성 완료 시 Ordered이벤트 발행.
++        OrderApplication.applicationContext
++            .getBean(teamcapstone.external.PayinfoService.class)
++            .pay(payinfo);
+
+        Ordered ordered = new Ordered(this);
+        ordered.publishAfterCommit();
+    }
+```
+
+주문 이벤트 발행 전 결제 호출(Req) 부분 - PayinfoService.java
+```diff
++// FeignClient 어노테이션을 통해 8084포트에서 동작중인 Payment서비스를 직접 호출. (동기)
++@FeignClient(name = "payment", url = "http://localhost:8084")
+public interface PayinfoService {
+    @RequestMapping(method = RequestMethod.POST, path = "/payinfos")
+    public void pay(@RequestBody Payinfo payinfo);
+    // keep
+}
+```
+
+#### 테스트
+주문 이벤트 호출 시 kafka 이벤트 발행 로그 확인.
+![image](https://user-images.githubusercontent.com/23250734/191683558-95e0293f-fd02-4075-a9c7-5df9c5c2f9bb.png)
+
+결제 서비스 중단 후 주문 호출 시, 주문 자체가 되지 않는 것을 확인할 수 있음 (500에러) 
+![image](https://user-images.githubusercontent.com/23250734/191683676-f547d93e-6f00-44db-bd3b-50bf016d0504.png)
 
 
 --------------------------------------------------
