@@ -249,9 +249,71 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 데이터가 중복으로 저장되는것을 감안하고, 비즈니스 로직과 데이터를 조회하는 영역을 분리하는 것.
 이번 실습에선 dashboard서비스를 생성하여, 주문의 전체적인 상태를 조회할 수 있도록 CQRS 생성.
 ```
+#### Dashboard 서비스
+```
+최초 주문이 되었을 때, 생성되는 별도의 객체 (주문과 1:1 맵핑)
+거의 모든 이벤트를 수신하여 이벤트에 따라 주문의 상태, 날짜 등을 업데이트하여 화면에 보여줌
+```
 
+이벤트들을 수신하여 Dashboard 정보를 변경하는 소스 - DashBoardViewHandler.java
+```diff
++   //Ordered(주문됨) 이벤트 발생 시 Dashboard 객체 신규 생성.
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenOrdered_then_CREATE_1(@Payload Ordered ordered) {
+        try {
+            if (!ordered.validate()) return;
 
+            // view 객체 생성
+            Dashboard dashboard = new Dashboard();
+            // view 객체에 이벤트의 Value 를 set 함
+            dashboard.setOrderId(ordered.getId());
+            dashboard.setStoreName(ordered.getStoreName());
+            dashboard.setItemName(ordered.getItemName());
+            dashboard.setItemQty(ordered.getItemQty());
+            dashboard.setPrice(ordered.getPrice());
+            dashboard.setStatus("ORDERED");
+            dashboard.setOrderDt(ordered.getOrderDate());
+            // view 레파지 토리에 save
+            dashboardRepository.save(dashboard);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
++   //주문이 취소되었을 경우 취소 상태로 업데이트하는 소스. 
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenOrderCanceled_then_UPDATE_4(
+        @Payload OrderCanceled orderCanceled
+    ) {
+        try {
+            if (!orderCanceled.validate()) return;
+            // view 객체 조회
+            Optional<Dashboard> dashboardOptional = dashboardRepository.findById(
+                orderCanceled.getId()
+            );
 
+            if (dashboardOptional.isPresent()) {
+                Dashboard dashboard = dashboardOptional.get();
+                // view 객체에 이벤트의 eventDirectValue 를 set 함
+                dashboard.setStatus("ORDER_CANCELED");
+                // view 레파지 토리에 save
+                dashboardRepository.save(dashboard);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+```
+
+#### 결과 확인
+주문 시작
+![image](https://user-images.githubusercontent.com/23250734/191677781-e6d25546-eae9-4aa3-a727-5e9f6dae0c9c.png)
+
+특정 주문 조리완료
+![image](https://user-images.githubusercontent.com/23250734/191677861-5e4b13b1-6779-45a1-a837-22422b93c738.png)
+
+대쉬보드 상태 변경됨.
+![image](https://user-images.githubusercontent.com/23250734/191677704-e76ac785-2fb4-49c8-97c7-9e2431900260.png)
 
 --------------------------------------------------
 ## gateway
