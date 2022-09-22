@@ -321,9 +321,94 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 
 --------------------------------------------------
 ## Correlation / Compensation(Unique Key)
+```
+주문, 조리 완료 시 비동기 구현을 위해 kafka를 사용.
+모든 비동기 이벤트는 kafka메시지로 발행됨. 이벤트가 발행되는 것을 확인한다.
+```
+
+각 서비스별 application.yml 파일.
+```diff
+spring:
+  profiles: default
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+  cloud:
+    stream:
++      kafka:   //서비스 간 비동기 통신을 위해 kafka를 사용.
+        binder:
+          brokers: localhost:9092   //kafka주소.
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: dashboard
+          destination: teamcapstone
+          contentType: application/json
+        event-out:
+          destination: teamcapstone
+          contentType: application/json
+```
+
+kafka 이벤트 발송. - AbsctractEvent.java
+```
+//설정된 kafka설정을 따라 이벤트 발행.
+public void publish() {
+        /**
+         * spring streams 방식
+         */
+        KafkaProcessor processor = OrderApplication.applicationContext.getBean(
+            KafkaProcessor.class
+        );
+        MessageChannel outputChannel = processor.outboundTopic();
+
+        outputChannel.send(
+            MessageBuilder
+                .withPayload(this)
+                .setHeader(
+                    MessageHeaders.CONTENT_TYPE,
+                    MimeTypeUtils.APPLICATION_JSON
+                )
+                .setHeader("type", getEventType())
+                .build()
+        );
+    }
+```
+
+주문 실행
+![image](https://user-images.githubusercontent.com/23250734/191680811-011b2741-b24b-415e-8f9e-931e1b48ea3b.png)
+
+kafka 메시지 발송 확인.
+![image](https://user-images.githubusercontent.com/23250734/191680880-c573d299-ad40-45b4-a196-2c52218fe4a4.png)
+
+메시지 내용 확인 (Ordered이벤트)
+application.yml에 설정한 kafka설정에 따라 json형식으로 이벤트 발행.
+```
+{
+	"eventType":"Ordered",
+	"timestamp":1663830408970,
+	"id":7,
+	"storeName":"스토어99",
+	"itemName":null,
+	"itemQty":21,
+	"price":22000,
+	"orderStatus":null,
+	"orderDate":null
+}
+```
 
 
-
+--------------------------------------------------
+## Req / Resp (feign client)
+feign client를 통한 동기 이벤트 구현 (트랜잭션)
 
 
 --------------------------------------------------
