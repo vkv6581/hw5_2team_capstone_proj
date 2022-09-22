@@ -169,8 +169,8 @@ SAGA 패턴은 MSA 개발 환경에서, 분산된 여러 서비스들 간 데이
 따라서 주문 취소 이벤트를 각 서비스에서 수신받아, 각 서비스의 주문 상태를 업데이트한다. (비동기 일관성 유지)
 ```
 
-#### 이벤트 발행
-Order.java
+#### 이벤트 발행 소스
+Order.java의 주문 취소 소스.
 ```
     //Order.java에서 주문이 취소되었을 때 (DELETE 요청) OrderCanceled이벤트 발행.
     @PostRemove
@@ -186,5 +186,61 @@ Order.java
 ```
 
 
-#### 이벤트 수신
+#### 이벤트 수신 소스
+Payinfo.java의 주문 취소 이벤트 수신 소스.
+```
+    //주문 취소 (OrderCanceled 이벤트 수신)
+    public static void payCancel(OrderCanceled orderCanceled) {
+    
+        //취소된 주문 ID로 pay정보 검색 후 상태 업데이트
+        Payinfo payinfo = repository().findByOrderId(orderCanceled.getId());
+        if(payinfo != null) {
+            payinfo.setStatus("ORDER_CANCELED");
+            repository().save(payinfo);
+            
+            //상태 업데이트 후 결제취소 이벤트 발행.
+            PaymentCanceled paymentCanceled = new PaymentCanceled(payinfo);
+            paymentCanceled.publishAfterCommit();
+        }
+    }
+```
+
+Store.java의 주문 취소 이벤트 수신 소스.
+```
+    public static void orderRecevie(OrderCanceled orderCanceled) {
+
+        //주문 취소 시 관련 store 취소처리.
+        Store store = repository().findByOrderId(orderCanceled.getId());
+        if(store != null) {
+            store.setOrderStatus(orderCanceled.getOrderStatus());
+            repository().save(store);
+            
+            StoreCanceled storeCanceled = new StoreCanceled();
+            storeCanceled.setOrderId(orderCanceled.getId());
+            storeCanceled.publishAfterCommit();
+        }
+    }
+```
+
+#### 테스트
+
+주문 취소 호출. (3번 주문 취소)
+```
+http DELETE localhost:8081/orders/3
+```
+![image](https://user-images.githubusercontent.com/23250734/191670387-a3b7752a-68c1-488b-9edd-d7cde77af7a5.png)
+
+kafka 이벤트 로그. (이벤트 수신까지 포함.)
+주문 취소 -> 결제 취소 / 상점 취소까지 연속적으로 이루어진 것을 확인 가능.
+![image](https://user-images.githubusercontent.com/23250734/191670577-ae74f15e-d0d6-49b1-b2dc-61a6b1eaf3d1.png)
+
+3번 주문과 연결된 상점 정보 취소된 것 확인 가능. 
+![image](https://user-images.githubusercontent.com/23250734/191671603-cab72c63-3625-44da-a74f-41844c3a2e44.png)
+
+3번 주문과 연결된 결제정보또한 취소됨.
+![image](https://user-images.githubusercontent.com/23250734/191671979-196c1513-1073-41e8-92e2-0a26725a7d8a.png)
+
+--------------------------------------------------
+## CQRS
+
 
