@@ -318,6 +318,14 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 
 ![image](https://user-images.githubusercontent.com/23250734/191677704-e76ac785-2fb4-49c8-97c7-9e2431900260.png)
 
+
+--------------------------------------------------
+## Correlation / Compensation(Unique Key)
+
+
+
+
+
 --------------------------------------------------
 ## gateway
 ```
