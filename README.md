@@ -528,8 +528,10 @@ spring:
 
 - AWS 클러스터는 미리 생성해서 연결하였음.
 - helm을 통한 kafka는 미리 생성하였음.
+- dockerHub에는 미리 로그인되었음.
 
-1. order서비스의 application.yml 확인
+#### 이미지 빌드 및 배포
+##### 1. order서비스의 application.yml 확인
 application.yml의 하단에 docker이미지로 빌드되는 경우 사용할 설정이 따로 존재한다.
 
 해당 설정의 kafka주소를 확인한다.
@@ -560,7 +562,7 @@ spring:
 ```
 
 
-2. order서비스 패키징
+##### 2. order서비스 패키징
 order서비스 폴더 최상단으로 이동 후 아래의 명령어를 입력한다
 
 ```
@@ -573,7 +575,7 @@ mvn package -Dmaven.test.skip
 ![image](https://user-images.githubusercontent.com/23250734/191693683-993440cd-008a-4da7-91f3-870f6fe76280.png)
 
 
-3. 도커 이미지 빌드. (Dockerfile확인)
+##### 3. 도커 이미지 빌드. (Dockerfile확인)
 
 order서비스 최상단에 있는 dockerfile을 확인한다.
 ```
@@ -585,7 +587,101 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ENTRYPOINT ["java","-Xmx400M","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","--spring.profiles.active=docker"]
 ```
 
-도커 이미지 빌드 및 확인
+도커 이미지 빌드
 ```
-docker build -t vkv6581/delivery:v1 .
+//docker파일이 있는 경로에서 수행
+docker build -t vkv6581/order:v1 .
 ```
+
+도커 이미지 확인
+```
+docker images
+```
+
+![image](https://user-images.githubusercontent.com/23250734/191694867-f73b04e4-126c-4aa5-a4b8-57105ab0df6f.png)
+
+
+#### 4. 도커 허브에 업로드.
+```
+docker push vkv6581/order:v1 -t
+```
+
+도커허브에 이미지 업로드된 것 확인.
+
+![image](https://user-images.githubusercontent.com/23250734/191695211-e32bdcb8-466d-4039-9d9f-5411c467fb3d.png)
+
+
+#### 5. 쿠버네티스 pod deploy
+
+order 서비스 최상단 폴더 kubernetes 폴더 하위의 deployment.yaml파일 확인.
+
+```diff
+apiVersion: apps/v1
++kind: Deployment		//pods 종류.
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
++  replicas: 3			//복제본 수 
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
++          image: vkv6581/order:v1		//배포할 이미지 docker hub 주소.
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+```
+
+#### 6. 쿠버네티스 pod 배포
+5번에서 진행하던 동일한 경로에서 아래의 배포 명령어 실행
+```
+kubectl apply -f deployment.yaml
+```
+
+pod생성 확인
+```
+kubectl get pods
+```
+
+replicaset이 3개이기 때문에 3개의 pods가 생성된 것을 확인할 수 있음.
+
+![image](https://user-images.githubusercontent.com/23250734/191695875-b2edd74a-4b23-47fc-a7fa-35d1b13fe971.png)
+
+
+#### 7. 외부 접속을 위한 service 배포.
+동일한 경로에서 아래의 배포 명령어 실행 (서비스 배포)
+서비스 : pods에 직접 접속하는 것이 아니라 order서비스에 배포하기 위한 진입구.
+```
+kubectl apply -f service.yaml
+```
+
+서비스 생성된 것 확인
+
+![image](https://user-images.githubusercontent.com/23250734/191696518-79b00828-4f3f-4bfd-b34f-5589c3ef9b67.png)
+
+
+
