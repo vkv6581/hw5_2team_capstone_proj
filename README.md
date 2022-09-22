@@ -243,4 +243,74 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 --------------------------------------------------
 ## CQRS
 
+```
+명령 및 쿼리 역할 구분 CQRS (Command and Query Responsibility Segregation)
+데이터를 조회하는 부분을 분리하는 것으로 이해.
+데이터가 중복으로 저장되는것을 감안하고, 비즈니스 로직과 데이터를 조회하는 영역을 분리하는 것.
+이번 실습에선 dashboard서비스를 생성하여, 주문의 전체적인 상태를 조회할 수 있도록 CQRS 생성.
+```
+
+
+
+
+--------------------------------------------------
+## gateway
+```
+여러 마이크로서비스를 실행 시, 각 마이크로서비스로의 진입점이 달라 포트 번호를 전부 지정해서 호출해야 하는 문제를 해결하기 위해 gateway사용.
+이번 실습에선 spring-cloud에서 제공하는 gateway기능을 통해 구현하였음.
+```
+
+gateway 생성을 위한 application.yml 파일.
+```diff
+server:
++  port: 8088   //gateway 포트. gateway포트로 들어오면 하위 URL에 따라 각각의 서비스로 redirect시켜줌.
+
+---
+spring:
+  profiles: default
+  cloud:
+    gateway:
+      routes:
++      //아래 routes경로에 서비스들의 정보를 입력. /orders/~~가 포함된 URL로 gateway에 접근하면, 8081 포트에 떠 있는 order서비스로 redirect시켜줌.
++        - id: order
++          uri: http://localhost:8081
++          predicates:
++            - Path=/orders/**, 
+        - id: store
+          uri: http://localhost:8082
+          predicates:
+            - Path=/stores/**, 
+        - id: delivery
+          uri: http://localhost:8083
+          predicates:
+            - Path=/deliveries/**, 
+        - id: payment
+          uri: http://localhost:8084
+          predicates:
+            - Path=/payinfos/**, 
+        - id: dashboard
+          uri: http://localhost:8085
+          predicates:
+            - Path=, /dashboards/**
++            //특정 경로가 없을 시 8080포트로 띄워진 프론트엔드 호출.
++        - id: frontend
++          uri: http://localhost:8080
++          predicates:
++            - Path=/**
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+```
+
+테스트
+![image](https://user-images.githubusercontent.com/23250734/191675243-a11c2059-c4c4-44e8-b172-94f1c6a6517b.png)
+
+![image](https://user-images.githubusercontent.com/23250734/191675583-68e5f227-7634-423e-b18a-7a31d6c2288a.png)
 
