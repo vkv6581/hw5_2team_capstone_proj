@@ -111,6 +111,51 @@
 ```
 
 --------------------------------------------------
+## 사전 준비 - kafka 생성 및 모니터링 (kafka)
+
+```diff
+version: '2'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+  
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      
++   kafka-ui:
+      image: provectuslabs/kafka-ui
+      container_name: cluster-kafka-ui
+      ports:
+        - "9500:8080"
+      environment:
+        KAFKA_CLUSTERS_0_NAME: local
+        KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: PLAINTEXT://kafka:29092
+        KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181"
+      depends_on:
+        - zookeeper
+        - kafka
+```
+- 기본 제공된 kafka에 kafka-ui를 추가하여 kafka를 모니터링하였음.
+![image](https://user-images.githubusercontent.com/23250734/191666106-e8b6c957-fb70-4d92-8205-456f1530b61b.png)
+
+
+--------------------------------------------------
 ## SAGA Pattern (Pub / Sub)
 ```
 SAGA 패턴은 MSA 개발 환경에서, 분산된 여러 서비스들 간 데이터의 일관성을 지키기 위한 방법 중 하나.
@@ -140,4 +185,6 @@ Order.java
     }
 ```
 
+
 #### 이벤트 수신
+
