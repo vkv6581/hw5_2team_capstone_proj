@@ -515,3 +515,77 @@ spring:
 
 ![image](https://user-images.githubusercontent.com/23250734/191675583-68e5f227-7634-423e-b18a-7a31d6c2288a.png)
 
+
+--------------------------------------------------
+## Deploy / pipeline
+```
+쿠버네티스는 .yaml/yml 파일에 설정된 내용을 통해 자동으로 배포하고 상태를 유지할 수 있다.
+이번 프로젝트에선 서비스를 패키징 후 docker hub에 이미지로 업로드, 쿠버네티스 클러스터에 배포하였다.
+아래는 order서비스 테스트 결과이다.
+```
+
+#### 사전 준비사항
+
+- AWS 클러스터는 미리 생성해서 연결하였음.
+- helm을 통한 kafka는 미리 생성하였음.
+
+1. order서비스의 application.yml 확인
+application.yml의 하단에 docker이미지로 빌드되는 경우 사용할 설정이 따로 존재한다.
+
+해당 설정의 kafka주소를 확인한다.
+```diff
+spring:
+  profiles: docker
+  cloud:
+    stream:
+      kafka:
+        binder:
++          brokers: my-kafka:9092			//kafka 주소 확인
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: order
+          destination: teamcapstone
+          contentType: application/json
+        event-out:
+          destination: teamcapstone
+          contentType: application/json
+```
+
+
+2. order서비스 패키징
+order서비스 폴더 최상단으로 이동 후 아래의 명령어를 입력한다
+
+```
+//메이븐 패키징
+mvn package -Dmaven.test.skip
+```
+
+패키징 결과 target폴더에 SNAPSHOT파일이 생성된다.
+
+![image](https://user-images.githubusercontent.com/23250734/191693683-993440cd-008a-4da7-91f3-870f6fe76280.png)
+
+
+3. 도커 이미지 빌드. (Dockerfile확인)
+
+order서비스 최상단에 있는 dockerfile을 확인한다.
+```
+FROM openjdk:15-jdk-alpine		//java프로그램을 기반으로 SNAPSHOT.jar에 있는 파일들을 이미지로 묶는다는 내용.
+COPY target/*SNAPSHOT.jar app.jar
+EXPOSE 8080
+ENV TZ=Asia/Seoul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENTRYPOINT ["java","-Xmx400M","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","--spring.profiles.active=docker"]
+```
+
+도커 이미지 빌드 및 확인
+```
+docker build -t vkv6581/delivery:v1 .
+```
