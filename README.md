@@ -307,12 +307,15 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 
 #### 결과 확인
 주문 시작
+
 ![image](https://user-images.githubusercontent.com/23250734/191677781-e6d25546-eae9-4aa3-a727-5e9f6dae0c9c.png)
 
 특정 주문 조리완료
+
 ![image](https://user-images.githubusercontent.com/23250734/191677861-5e4b13b1-6779-45a1-a837-22422b93c738.png)
 
-대쉬보드 상태 변경됨.
+대쉬보드 상태 변경된 것 확인
+
 ![image](https://user-images.githubusercontent.com/23250734/191677704-e76ac785-2fb4-49c8-97c7-9e2431900260.png)
 
 --------------------------------------------------
