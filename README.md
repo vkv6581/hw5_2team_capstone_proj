@@ -684,4 +684,15 @@ kubectl apply -f service.yaml
 ![image](https://user-images.githubusercontent.com/23250734/191696518-79b00828-4f3f-4bfd-b34f-5589c3ef9b67.png)
 
 
+#### 8. order 서비스 테스트를 위한 포트포워딩
+콘솔에서 8080으로 테스트를 위해 order 서비스 포트포워딩
+```
+kubectl port-forward deploy/order 8080:8080
+```
+
+![image](https://user-images.githubusercontent.com/23250734/191697137-66a25220-e2ab-480e-b669-edf2c908feb8.png)
+
+콘솔에서 8080포트로 호출 시 정상 동작하는것 확인 가능.
+
+![image](https://user-images.githubusercontent.com/23250734/191697326-c11f5bfb-f28c-4a8e-858d-85a572887cee.png)
 
