@@ -58,7 +58,7 @@
   - Image-Repository-Name : Account-Id
 
 --------------------------------------------------
-## 분석 설계
+## 분석 설계 (공통)
 
 ### 배달의민족
 
@@ -81,7 +81,7 @@
 고객이 자주 상점관리에서 확인할 수 있는 배달상태를 주문시스템(프론트엔드)에서 확인할 수 있어야 한다 CQRS
 
 --------------------------------------------------
-## 이벤트스토밍
+## 이벤트스토밍 (공통)
 - 이벤트스토밍 결과
 ![image](https://user-images.githubusercontent.com/23250734/191643996-1c8d90db-0506-4f55-ad9e-e4a85bd4d625.png)
 
@@ -123,3 +123,21 @@ SAGA 패턴은 MSA 개발 환경에서, 분산된 여러 서비스들 간 데이
 사용자가 주문을 취소하면, 결제/상점 주문이 동시에 취소되어야 한다.
 따라서 주문 취소 이벤트를 각 서비스에서 수신받아, 각 서비스의 주문 상태를 업데이트한다. (비동기 일관성 유지)
 ```
+
+#### 이벤트 발행
+Order.java
+```
+    //Order.java에서 주문이 취소되었을 때 (DELETE 요청) OrderCanceled이벤트 발행.
+    @PostRemove
+    public void onDeletePersist() {
+        //order취소 시 orderCanceled 이벤트 발행.
+        OrderCanceled orderCanceled = new OrderCanceled(this);
+
+        orderCanceled.setId(this.id);
+        orderCanceled.setOrderStatus("CANCELED");
+
+        orderCanceled.publishAfterCommit();
+    }
+```
+
+#### 이벤트 수신
