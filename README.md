@@ -83,9 +83,11 @@
 --------------------------------------------------
 ## 이벤트스토밍 (공통)
 - 이벤트스토밍 결과
+
 ![image](https://user-images.githubusercontent.com/23250734/191643996-1c8d90db-0506-4f55-ad9e-e4a85bd4d625.png)
 
 - 주문 -> 배달 프로세스
+
 ![image](https://user-images.githubusercontent.com/23250734/191655483-b91ea937-f779-4d52-8047-ec465fb21c03.png)
 
 ```
@@ -99,6 +101,7 @@
 ```
 
 - 트랜잭션 
+
 ![image](https://user-images.githubusercontent.com/23250734/191655924-98f7cff8-3a0c-4aab-b04f-2de851d1d7a7.png)
 ```
 주문 -> 결제 과정을 req/res로 처리하여 트랜잭션 처리하였다.
@@ -111,7 +114,11 @@
 ```
 
 --------------------------------------------------
-## 사전 준비 - kafka 생성 및 모니터링 (kafka)
+## 사전 준비
+
+kafka 생성 및 모니터링 (docker-compose)
+
+- 기본 제공된 kafka에 kafka-ui를 추가하여 kafka를 모니터링하였음.
 
 ```diff
 version: '2'
@@ -151,7 +158,8 @@ services:
         - zookeeper
         - kafka
 ```
-- 기본 제공된 kafka에 kafka-ui를 추가하여 kafka를 모니터링하였음.
+- kafka ui 페이지에서 메시지 조회
+
 ![image](https://user-images.githubusercontent.com/23250734/191666106-e8b6c957-fb70-4d92-8205-456f1530b61b.png)
 
 
@@ -163,6 +171,7 @@ SAGA 패턴은 MSA 개발 환경에서, 분산된 여러 서비스들 간 데이
 이번 배달의민족 사례에선 사용자가 주문을 취소하였을 때 case로 테스트를 진행.
 ```
 - 이벤트스토밍 프로세스
+
 ![image](https://user-images.githubusercontent.com/23250734/191657494-dc6fb681-1c6b-4e0c-8bd2-9f62e3f987e2.png)
 ```
 사용자가 주문을 취소하면, 결제/상점 주문이 동시에 취소되어야 한다.
@@ -171,9 +180,9 @@ SAGA 패턴은 MSA 개발 환경에서, 분산된 여러 서비스들 간 데이
 
 #### 이벤트 발행 소스
 Order.java의 주문 취소 소스.
-```
-    //Order.java에서 주문이 취소되었을 때 (DELETE 요청) OrderCanceled이벤트 발행.
-    @PostRemove
+```diff
++    //Order.java에서 주문이 취소되었을 때 (DELETE 요청) OrderCanceled이벤트 발행.
++    @PostRemove
     public void onDeletePersist() {
         //order취소 시 orderCanceled 이벤트 발행.
         OrderCanceled orderCanceled = new OrderCanceled(this);
@@ -181,24 +190,24 @@ Order.java의 주문 취소 소스.
         orderCanceled.setId(this.id);
         orderCanceled.setOrderStatus("CANCELED");
 
-        orderCanceled.publishAfterCommit();
++        orderCanceled.publishAfterCommit();
     }
 ```
 
 
 #### 이벤트 수신 소스
 Payinfo.java의 주문 취소 이벤트 수신 소스.
-```
-    //주문 취소 (OrderCanceled 이벤트 수신)
+```diff
++    //주문 취소 (OrderCanceled 이벤트 수신)
     public static void payCancel(OrderCanceled orderCanceled) {
     
-        //취소된 주문 ID로 pay정보 검색 후 상태 업데이트
++        //취소된 주문 ID로 pay정보 검색 후 상태 업데이트
         Payinfo payinfo = repository().findByOrderId(orderCanceled.getId());
         if(payinfo != null) {
             payinfo.setStatus("ORDER_CANCELED");
             repository().save(payinfo);
             
-            //상태 업데이트 후 결제취소 이벤트 발행.
++            //상태 업데이트 후 결제취소 이벤트 발행.
             PaymentCanceled paymentCanceled = new PaymentCanceled(payinfo);
             paymentCanceled.publishAfterCommit();
         }
@@ -206,10 +215,10 @@ Payinfo.java의 주문 취소 이벤트 수신 소스.
 ```
 
 Store.java의 주문 취소 이벤트 수신 소스.
-```
+```diff
     public static void orderRecevie(OrderCanceled orderCanceled) {
 
-        //주문 취소 시 관련 store 취소처리.
++        //주문 취소 시 관련 store 취소처리.
         Store store = repository().findByOrderId(orderCanceled.getId());
         if(store != null) {
             store.setOrderStatus(orderCanceled.getOrderStatus());
@@ -228,16 +237,21 @@ Store.java의 주문 취소 이벤트 수신 소스.
 ```
 http DELETE localhost:8081/orders/3
 ```
+
 ![image](https://user-images.githubusercontent.com/23250734/191670387-a3b7752a-68c1-488b-9edd-d7cde77af7a5.png)
 
 kafka 이벤트 로그. (이벤트 수신까지 포함.)
+
 주문 취소 -> 결제 취소 / 상점 취소까지 연속적으로 이루어진 것을 확인 가능.
+
 ![image](https://user-images.githubusercontent.com/23250734/191670577-ae74f15e-d0d6-49b1-b2dc-61a6b1eaf3d1.png)
 
 3번 주문과 연결된 상점 정보 취소된 것 확인 가능. 
+
 ![image](https://user-images.githubusercontent.com/23250734/191671603-cab72c63-3625-44da-a74f-41844c3a2e44.png)
 
 3번 주문과 연결된 결제정보또한 취소됨.
+
 ![image](https://user-images.githubusercontent.com/23250734/191671979-196c1513-1073-41e8-92e2-0a26725a7d8a.png)
 
 --------------------------------------------------
@@ -306,6 +320,7 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 ```
 
 #### 결과 확인
+
 주문 시작
 
 ![image](https://user-images.githubusercontent.com/23250734/191677781-e6d25546-eae9-4aa3-a727-5e9f6dae0c9c.png)
@@ -321,12 +336,15 @@ kafka 이벤트 로그. (이벤트 수신까지 포함.)
 
 --------------------------------------------------
 ## Correlation / Compensation(Unique Key)
+
 ```
-주문, 조리 완료 시 비동기 구현을 위해 kafka를 사용.
-모든 비동기 이벤트는 kafka메시지로 발행됨. 이벤트가 발행되는 것을 확인한다.
+서비스 간 비동기 이벤트호출을 위해 kafka사용.
+이벤트는 kafka메시지로 발행됨. 
+사용자 동작에 따라 kafka로 이벤트가 발행되는 것을 확인한다.
 ```
 
 각 서비스별 application.yml 파일.
+
 ```diff
 spring:
   profiles: default
@@ -384,13 +402,17 @@ public void publish() {
 ```
 
 주문 실행
+
 ![image](https://user-images.githubusercontent.com/23250734/191680811-011b2741-b24b-415e-8f9e-931e1b48ea3b.png)
 
 kafka 메시지 발송 확인.
+
 ![image](https://user-images.githubusercontent.com/23250734/191680880-c573d299-ad40-45b4-a196-2c52218fe4a4.png)
 
 메시지 내용 확인 (Ordered이벤트)
+
 application.yml에 설정한 kafka설정에 따라 json형식으로 이벤트 발행.
+
 ```
 {
 	"eventType":"Ordered",
@@ -408,15 +430,19 @@ application.yml에 설정한 kafka설정에 따라 json형식으로 이벤트 �
 
 --------------------------------------------------
 ## Req / Resp (feign client)
+
 이벤트스토밍 중 주문-결제 부분
+
 ![image](https://user-images.githubusercontent.com/23250734/191682661-7f6b9ff0-2e95-4edc-a80c-e6921893a8b4.png)
 
 ```
 요구사항 중 주문-결제 트랜잭션 처리를 위해 Pub/Sub 방식이 아닌 Req/Res방식으로 이벤트 처리.
 주문 시 결제가 한번에 진행되어야 하고, 결제에 문제가 생겼을 경우 주문 이벤트는 발행되지 않음.
+타 서비스를 Req/Res방식으로 호출하기 위해 @FeignClient 어노테이션 사용.
 ```
 
 주문 이벤트 발행 부분 (Order.java)
+
 ```diff
     @PostPersist
     public void onPostPersist() {
@@ -436,6 +462,7 @@ application.yml에 설정한 kafka설정에 따라 json형식으로 이벤트 �
 ```
 
 주문 이벤트 발행 전 결제 호출(Req) 부분 - PayinfoService.java
+
 ```diff
 +// FeignClient 어노테이션을 통해 8084포트에서 동작중인 Payment서비스를 직접 호출. (동기)
 +@FeignClient(name = "payment", url = "http://localhost:8084")
@@ -447,21 +474,26 @@ public interface PayinfoService {
 ```
 
 #### 테스트
+
 주문 이벤트 호출 시 kafka 이벤트 발행 로그 확인.
+
 ![image](https://user-images.githubusercontent.com/23250734/191683558-95e0293f-fd02-4075-a9c7-5df9c5c2f9bb.png)
 
-결제 서비스 중단 후 주문 호출 시, 주문 자체가 되지 않는 것을 확인할 수 있음 (500에러) 
+결제 서비스 중단 후 주문 호출 시, 주문 자체가 되지 않는 것을 확인할 수 있음 (500에러)
+ 
 ![image](https://user-images.githubusercontent.com/23250734/191683676-f547d93e-6f00-44db-bd3b-50bf016d0504.png)
 
 
 --------------------------------------------------
 ## gateway
+
 ```
 여러 마이크로서비스를 실행 시, 각 마이크로서비스로의 진입점이 달라 포트 번호를 전부 지정해서 호출해야 하는 문제를 해결하기 위해 gateway사용.
 이번 실습에선 spring-cloud에서 제공하는 gateway기능을 통해 구현하였음.
 ```
 
 gateway 생성을 위한 application.yml 파일.
+
 ```diff
 server:
 +  port: 8088   //gateway 포트. gateway포트로 들어오면 하위 URL에 따라 각각의 서비스로 redirect시켜줌.
@@ -511,6 +543,7 @@ spring:
 ```
 
 테스트
+
 ![image](https://user-images.githubusercontent.com/23250734/191675243-a11c2059-c4c4-44e8-b172-94f1c6a6517b.png)
 
 ![image](https://user-images.githubusercontent.com/23250734/191675583-68e5f227-7634-423e-b18a-7a31d6c2288a.png)
@@ -518,10 +551,11 @@ spring:
 
 --------------------------------------------------
 ## Deploy / pipeline
+
 ```
 쿠버네티스는 .yaml/yml 파일에 설정된 내용을 통해 자동으로 배포하고 상태를 유지할 수 있다.
 이번 프로젝트에선 서비스를 패키징 후 docker hub에 이미지로 업로드, 쿠버네티스 클러스터에 배포하였다.
-아래는 order서비스 테스트 결과이다.
+아래는 order서비스 테스트 결과.
 ```
 
 #### 사전 준비사항
@@ -531,10 +565,13 @@ spring:
 - dockerHub에는 미리 로그인되었음.
 
 #### 이미지 빌드 및 배포
+
 ##### 1. order서비스의 application.yml 확인
+
 application.yml의 하단에 docker이미지로 빌드되는 경우 사용할 설정이 따로 존재한다.
 
 해당 설정의 kafka주소를 확인한다.
+
 ```diff
 spring:
   profiles: docker
@@ -563,6 +600,7 @@ spring:
 
 
 ##### 2. order서비스 패키징
+
 order서비스 폴더 최상단으로 이동 후 아래의 명령어를 입력한다
 
 ```
@@ -713,8 +751,7 @@ TODO
 TODO
 
 --------------------------------------------------
-## Zero-Downtime Deploy(Readiness Probe)              : 공통(deployment.yaml에 작성)
-
+## Zero-Downtime Deploy(Readiness Probe) 
 ```
 yaml을 통한 쿠버네티스 배포 시, 설정을 통해 무중단 배포가 가능하다.
 (readness, liveness설정 필요)
@@ -818,4 +855,3 @@ spec:
 siege를 통해 지속적인 호출을 하였지만, 중단되지 않음.
 
 ![image](https://user-images.githubusercontent.com/23250734/191700800-2a46f200-f7fe-4433-b449-af35720c9ab6.png)
-
