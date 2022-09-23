@@ -1,24 +1,12 @@
 # msa-capstone-project
-## 🕙 Schedule
-
-- 일자별 진행
-
-  |   일자    | 진행           | 내용                                |
-  | :-------: | :------------- | :---------------------------------- |
-  | 09/21 AM  | OJT            | 과정설명<br>과제수행환경설명        |
-  | 09/21 PM  | Brain Storming | msaez.io                            |
-  | 09/22 ALL | Team Project   | 팀별과제 수행                       |
-  | 09/23 AM  | Team Project   | 팀별과제 수행                       |
-  | 09/23 PM  | Wrap Up        | 과제 제출<br>시작:14시<br>마감:16시 |
-
 ## 👫 Team
 
-  | 팀  |   성명   | 직급 | 소속             |
-  | :-: | :------: | :--: | :--------------- |
-  |  2  | 🎖 최원식 | 과장 | 서비스운영2팀  |
-  |     |  황상식 | 과장 | 디지털워크그룹  |
-  |     |  김영준  | 대리 | Platform개발팀   |
-  |     |  이재영 | 대리 | 디지털워크그룹  |
+| 팀  |   성명   | 직급 | 소속             |
+| :-: | :------: | :--: | :--------------- |
+|  2  | 🎖 최원식 | 과장 | 서비스운영2팀  |
+|     |  황상식 | 과장 | 디지털워크그룹  |
+|     |  김영준  | 대리 | Platform개발팀   |
+|     |  이재영 | 대리 | 디지털워크그룹  |
 
 ## ✏️ Evaluation
 
@@ -35,28 +23,7 @@
 - Zero-Downtime Deploy(Readiness Probe)              : 공통(deployment.yaml에 작성)
 - Config Map / Persistence Volume                    : 
 - Polyglot
-
-## 📑 To-Do
-
-- <a href="https://www.msaez.io/#/" target="_blank">Brain Storming</a>
-
-  - 팀별로 주제 선정 및 이벤트 스토밍 진행
-
-- GitHub : [https://github.com/seonguk9303/hw5_capstone_proj]
-- GitPod
-  - Github 계정 및 Repositoy(public) 준비 ( **for FORK** )
-  - gitpod.io/#/{Github-Repository-URL} or Browser Extension 설치(https://www.gitpod.io/docs/browser-extension)
-  - Collaboration & Sharing
-    - 팀장 : github.com > repository > Settings > Collaborators > Add People ; 팀원초대
-    - 팀장 / 팀원 : gitpod.io > Settings > Integrations > GitHub > Edit Permissions > Public_repo Check ; GitPod - GitHub 권한설정
-  * gitpod 초기 연동시 필요한 라이브러리들이 없는 상태이며 **.gitpod.yml** 파일에 선언한 명령어들 자동 실행됨
-  * 실행 안되는 명령어들이 있으면 직접 설치
-- AWS (_약 15~20분 소요_)
-  - AWS IAM 계정(MSA5차수).xlsx 참고
-  - Region-Code : 메일 내 Region
-  - Cluster-Name : Account-Id
-  - Image-Repository-Name : Account-Id
-
+- 
 --------------------------------------------------
 ## 분석 설계 (공통)
 
@@ -755,7 +722,60 @@ Liveness Probe 설정을 통해 문제가 있는 pod를 제외 후 다른 pod를
 Liveness Probe를 설정하면 쿠버네티스에서 주기적으로 pod의 상태를 체크해, 문제가 있는 pod종료 후 새로운 pod를 생성한다.
 ```
 
+deployment.yaml파일
 
+```diff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: vkv6581/order:v1
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
++          livenessProbe:
++            httpGet:
++              path: '/actuator/health'			//해당 주소로 helath-check
++              port: 8080
++            initialDelaySeconds: 120
++            timeoutSeconds: 2
++            periodSeconds: 5
++            failureThreshold: 5
+```
+
+#### 테스트
+
+pods 목록 확인.
+
+![image](https://user-images.githubusercontent.com/23250734/191873984-a5104601-278a-4fed-93d8-4661e147c878.png)
+
+order 서비스의 health-check정보를 비활성화 처리.
+
+```
+http put localhost:8080/actuator/down
+http localhost:8080/actuator/health
+```
 
 --------------------------------------------------
 ## Zero-Downtime Deploy(Readiness Probe) 
